@@ -154,18 +154,31 @@ for epoch in range(n_epochs):
     my_MLP.forward_step(input_pairs[input_label_var])
     my_MLP.backprop_step(target)
 
-    if (my_MLP.output > threshold) and (target == [1]):
+    if target == [1]:
+        predictions.append(my_MLP.output > threshold)
+    else:
+        predictions.append(my_MLP.output < threshold)
+    loss.append((target - my_MLP.output) ** 2)
+    accuracy.append(sum(predictions)/len(predictions))
+
+print('a=', accuracy, 'n=', loss)
+
+
+'''
+  if (my_MLP.output > threshold) and (target == [1]):
         predictions.append(1)
     elif (my_MLP.output < threshold) and (target == [1]):
         predictions.append(0)
     elif (my_MLP.output < threshold) and (target == [0]):
         predictions.append(1)
     elif (my_MLP.output > threshold) and (target == [0]):
-        predictions.append(0)
-
+        predictions.append(0) 
+    
     accuracy.append(predictions.count(1) / len(predictions))
-
     loss.append((target - my_MLP.output) ** 2)
+ '''
+
+
 
 #### 6. Visualisation ####
 
@@ -177,8 +190,6 @@ plt.plot(x, y_1)
 plt.plot(x, y_2)
 plt.legend(['accuracy', 'loss'])
 plt.show()
-
-
 
 
 
