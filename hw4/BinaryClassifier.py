@@ -8,49 +8,29 @@ from tensorflow_datasets.core.utils.type_utils import T
 
 import pandas as pd
 
+###################################################
+## 1 Data set                                    ##
+###################################################
+
 
 from MyModel import *
 
 
+class Classifier:
 
 
-class BinaryClassifier:
-
-
-  def __init__(self, model=None):
+  def __init__(self, model=None, train_ds=None, test_ds=None):
       """
       
       """
-
-      self.model = model
+      #self.model = model
+      self.treshhold = 0
       
-      self.load_data()
-      self.treshhold = 0 # needed to make the problem a binary classifiying problem
+      #self.model = MyModel(dim_hidden=(2,511),perceptrons_out=10)
 
-      self.train_ds = self.train_ds.apply(self.pipeline)
-      self.test_ds = self.test_ds.apply(self.pipeline)
-      self.validation_ds = self.validation_ds.apply(self.pipeline)
+      # self.train(num_epochs=30, learning_rate=0.01)
+        
 
-
-
-  ###################################################
-  ## Train                                         ##
-  ###################################################
-  def train(self, num_epochs, learning_rate):
-
-
-    tf.keras.backend.clear_session()
-
-
-    # trainig model
-    self.model.training_loop(self.train_ds, self.test_ds, num_epochs, learning_rate)
-
-    # visualize 
-    self.model.visualize_learning()
-
-  ###################################################
-  ## 1 Data set                                    ##
-  ###################################################
   def load_data(self):
 
     data = pd.read_csv("https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv", delimiter=";")
@@ -73,45 +53,61 @@ class BinaryClassifier:
 
 
     self.treshhold = np.median(train_tar)
-    self.train_ds = training_ds
-    self.test_ds = testing_ds
-    self.validation_ds = validation_ds
+
+    return training_ds, testing_ds
+
+    
 
   def make_binary(self,target):
     # note: casting to int lowers accuracy
     return(tf.expand_dims(target >= self.treshhold, -1))
 
   def pipeline(self,tensor):
+
+
     tensor = tensor.map(lambda features, target: (features, self.make_binary(target)))
 
   # perfomance is better without converting to one_hot
   #  tensor = tensor.map(lambda inputs, target: (inputs, tf.one_hot(target,1)))
+    
     #cache this progress in memory
     tensor = tensor.cache()
     #shuffle, batch, prefetch
     tensor = tensor.shuffle(50)
     tensor = tensor.batch(32)
     tensor = tensor.prefetch(20)
+    #return preprocessed dataset
     return tensor
 
 
 
  
 
+  ###################################################
+  ## Main Program                                  ##
+  ###################################################
+  def train(self, num_epochs, learning_rate):
 
 
+    # loading 100 000 training examples and 1 000 testing examples as recommended
+    train_ds, test_ds = self.load_data()
+
+    train_dataset = train_ds.apply(self.pipeline)
+    test_dataset = test_ds.apply(self.pipeline)
+
+    tf.keras.backend.clear_session()
+
+    # Initialize the model based on wether we are allow
+    model = MyModel(dim_hidden=(4,12),perceptrons_out=1)
+
+    # trainig model
+    tr,te,te_acc = model.training_loop(train_dataset,test_dataset, num_epochs, learning_rate)
+
+    # visualize 
+    model.visualize_learning(tr,te,te_acc)
+
+
+    
 
 
   
-
-
-## testing ##
-# baseline
-myclassifier = BinaryClassifier(MyModel(dim_hidden=(1,12),perceptrons_out=1))
-
-# 0.01 does not have any change in accuracy
-myclassifier.train(num_epochs=10, learning_rate=0.1)
-
-final_acc = myclassifier.model.test_accuracies[-1]
-
-print(f'Epoch:  ending w  {final_acc}')
