@@ -24,6 +24,7 @@ def onehotify(seq):
   onehot = tf.reshape(onehot, (-1,))   # flattens into 1-D
   return onehot
 
+
 def pipeline(tensor):
   tensor = tensor.map(lambda seq, label: (onehotify(seq), tf.one_hot(label, 10)))
   #cache this progress in memory
@@ -201,6 +202,7 @@ if __name__ == "__main__":
 
   # loading 100 000 training examples and 1 000 testing examples as recommended
   train_ds, test_ds = tfds.load('genomics_ood', split=['train[0:100000]', 'test[0:1000]'], as_supervised=True)
+
 
   train_ds = train_ds.apply(pipeline)
   test_ds = test_ds.apply(pipeline)
