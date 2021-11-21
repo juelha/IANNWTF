@@ -28,9 +28,9 @@ class MyModel(tf.keras.Model):
       self.out = Dense(perceptrons_out, activation=tf.sigmoid)
 
       # for visualization of training
-      self.test_losses = []
       self.test_accuracies = []
-      self.training_losses = []
+      self.test_losses = []
+      self.train_losses = []
 
     @tf.function
     def call(self, x):
@@ -99,24 +99,20 @@ class MyModel(tf.keras.Model):
     # optimizer = tf.keras.optimizers.SGD(learning_rate)
       optimizer = tf.keras.optimizers.Adam(learning_rate)
 
-      # Initialize lists for later visualization.
-      train_losses = []
-
-      test_losses = []
-      test_accuracies = []
+      
 
       #testing once before we begin
       test_loss, test_accuracy = self.test( test_dataset, cross_entropy_loss)
-      test_losses.append(test_loss)
-      test_accuracies.append(test_accuracy)
+      self.test_losses.append(test_loss)
+      self.test_accuracies.append(test_accuracy)
 
       #check how model performs on train data once before we begin
       train_loss, _ = self.test( train_dataset, cross_entropy_loss)
-      train_losses.append(train_loss)
+      self.train_losses.append(train_loss)
 
       # We train for num_epochs epochs.
       for epoch in range(num_epochs):
-          print(f'Epoch: {str(epoch)} starting with accuracy {test_accuracies[-1]}')
+          print(f'Epoch: {str(epoch)} starting with accuracy {self.test_accuracies[-1]}')
 
           #training (and checking in with training)
           epoch_loss_agg = []
@@ -125,27 +121,27 @@ class MyModel(tf.keras.Model):
               epoch_loss_agg.append(train_loss)
           
           #track training loss
-          train_losses.append(tf.reduce_mean(epoch_loss_agg))
+          self.train_losses.append(tf.reduce_mean(epoch_loss_agg))
 
           #testing, so we can track accuracy and test loss
           test_loss, test_accuracy = self.test( test_dataset, cross_entropy_loss)
-          test_losses.append(test_loss)
-          test_accuracies.append(test_accuracy)
-      return train_losses, test_losses, test_accuracies
+          self.test_losses.append(test_loss)
+          self.test_accuracies.append(test_accuracy)
+    #  return train_losses, test_losses, test_accuracies
 
 
 
     ###################################################
     ## 4 Visualize                                   ##
     ###################################################
-    def visualize_learning(self,train_losses,test_losses,test_accuracies): 
+    def visualize_learning(self): 
       """
       Visualize accuracy and loss for training and test data.
         """
       plt.figure()
-      line1, = plt.plot(train_losses)
-      line2, = plt.plot(test_losses)
-      line3, = plt.plot(test_accuracies)
+      line1, = plt.plot(self.train_losses)
+      line2, = plt.plot(self.test_losses)
+      line3, = plt.plot(self.test_accuracies)
       plt.xlabel("Training steps")
       plt.ylabel("Loss/Accuracy")
       plt.legend((line1,line2, line3),("training losses", "test losses", "test accuracy"))

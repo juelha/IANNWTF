@@ -16,16 +16,18 @@ import pandas as pd
 from MyModel import *
 
 
-class Classifier:
+class BinaryClassifier:
 
 
-  def __init__(self, model=None, train_ds=None, test_ds=None):
+  def __init__(self, model=None ):
       """
       
       """
-      #self.model = model
+      self.model = model
       self.treshhold = 0
-      
+      self.train_ds = None
+      self.test_ds=None
+      self.validation_ds = None
       #self.model = MyModel(dim_hidden=(2,511),perceptrons_out=10)
 
       # self.train(num_epochs=30, learning_rate=0.01)
@@ -49,12 +51,13 @@ class Classifier:
     # convert to tensor dataset
     training_ds = tf.data.Dataset.from_tensor_slices((train_ds, train_tar))
     testing_ds = tf.data.Dataset.from_tensor_slices((test_ds, test_tar))
-    validation_ds = tf.data.Dataset.from_tensor_slices((validation_ds, validation_tar))
+    validating_ds = tf.data.Dataset.from_tensor_slices((validation_ds, validation_tar))
 
 
     self.treshhold = np.median(train_tar)
-
-    return training_ds, testing_ds
+    self.train_ds = training_ds
+    self.test_ds = testing_ds
+    self.validation_ds = validating_ds
 
     
 
@@ -90,21 +93,21 @@ class Classifier:
 
 
     # loading 100 000 training examples and 1 000 testing examples as recommended
-    train_ds, test_ds = self.load_data()
+    self.load_data()
 
-    train_dataset = train_ds.apply(self.pipeline)
-    test_dataset = test_ds.apply(self.pipeline)
+    train_dataset = self.train_ds.apply(self.pipeline)
+    test_dataset = self.test_ds.apply(self.pipeline)
 
     tf.keras.backend.clear_session()
 
     # Initialize the model based on wether we are allow
-    model = MyModel(dim_hidden=(4,12),perceptrons_out=1)
+  #  model = MyModel(dim_hidden=(4,12),perceptrons_out=1)
 
     # trainig model
-    tr,te,te_acc = model.training_loop(train_dataset,test_dataset, num_epochs, learning_rate)
+    self.model.training_loop(train_dataset,test_dataset, num_epochs, learning_rate)
 
     # visualize 
-    model.visualize_learning(tr,te,te_acc)
+    self.model.visualize_learning()
 
 
     
