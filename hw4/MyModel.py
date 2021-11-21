@@ -1,4 +1,6 @@
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.regularizers import *
+from tensorflow.keras.optimizers import *
 import tensorflow as tf
 
 import matplotlib.pyplot as plt
@@ -8,23 +10,28 @@ import numpy as np
 ## 2 Model Class                                 ##
 ###################################################
 
-###################################################
-## 2 Model Class                                 ##
-###################################################
-
 class MyModel(tf.keras.Model):
       
-    def __init__(self, dim_hidden, perceptrons_out):
+    def __init__(self, dim_hidden, perceptrons_out, k_r=None, a_r=None):
       """
       dim_hidden: dimensions of hidden layers (hardcoded as dense layers)
                   1st arg: n_layers
-                  2nd arg: n_perceptrons per layers
+                  2nd arg: n_perceptrons per layer
       perceptrons_out: n of perceptrons in output layer
       """
       super(MyModel, self).__init__()
+
+      # initalizing hidden layers
       n_layers, n_perceptrons = dim_hidden
-      self.hidden = [Dense(n_perceptrons, activation=tf.sigmoid)
-                            for _ in range(n_layers)]
+
+      self.hidden = [Dense(
+        n_perceptrons,
+        activation=tf.sigmoid,
+        kernel_regularizer=k_r,
+        activity_regularizer=a_r
+        ) for _ in range(n_layers)]
+      
+      self.dropout_layer = Dropout(rate=0.2)
       self.out = Dense(perceptrons_out, activation=tf.sigmoid)
 
       # for visualization of training
@@ -36,9 +43,13 @@ class MyModel(tf.keras.Model):
     def call(self, x):
       """
       forward propagating the inputs through the network
+
+      input: x, the dataset
+      returns: final output
       """
       for layer in self.hidden:
             x = layer(x)
+      x = self.dropout_layer(x)
       x = self.out(x)
       return x       
 
@@ -50,8 +61,9 @@ class MyModel(tf.keras.Model):
     def train_step(self, input, target, loss_function, optimizer):
       """
       implements train step for ONE (1) datasample or batch (of datasamples)
+      
+      returns: loss of one trainig step
       """
-      # loss_object and optimizer_object are instances of respective tensorflow classes
       with tf.GradientTape() as tape:
         prediction = self(input)
         loss = loss_function(target, prediction)
@@ -61,10 +73,13 @@ class MyModel(tf.keras.Model):
 
     def test(self, test_data, loss_function):
       """
-      test over complete test data
+      forward pass of test_data 
+      accuracy and loss not tracked during pass, but calculated from 
+      final output
+
+      inputs: data to be tested, loss_function defined in training_loop()
+      returns: the loss and accuracy of the data
       """
-
-
       test_accuracy_aggregator = []
       test_loss_aggregator = []
 
@@ -82,24 +97,20 @@ class MyModel(tf.keras.Model):
       return test_loss, test_accuracy
     
 
-
     ###################################################
     ## Training Loop                                 ##
     ###################################################
 
-    def training_loop(self, train_dataset, test_dataset, num_epochs, learning_rate ):
-      # todo loss func, optimizert
-
-      ### Hyperparameters
-
-      
+    def training_loop(self, train_dataset, test_dataset, num_epochs, learning_rate, loss_function, optimizer_func):
+      """
+      training of the model 
+      initializes the vectors self.test_losses, self.test_accuracies, and self.test_accuracies 
+      inputs: train_dataset, test_dataset, num_epochs, learning_rate, loss_function, optimizer_func
+      """
       # Initialize the loss: categorical cross entropy. Check out 'tf.keras.losses'.
-      cross_entropy_loss = tf.keras.losses.BinaryCrossentropy()
-      # Initialize the optimizer: SGD with default parameters. Check out 'tf.keras.optimizers'
-    # optimizer = tf.keras.optimizers.SGD(learning_rate)
-      optimizer = tf.keras.optimizers.Adam(learning_rate)
+      cross_entropy_loss = loss_function
 
-      
+      optimizer = optimizer_func(learning_rate)
 
       #testing once before we begin
       test_loss, test_accuracy = self.test( test_dataset, cross_entropy_loss)
@@ -107,7 +118,7 @@ class MyModel(tf.keras.Model):
       self.test_accuracies.append(test_accuracy)
 
       #check how model performs on train data once before we begin
-      train_loss, _ = self.test( train_dataset, cross_entropy_loss)
+      train_loss, _ = self.test(train_dataset, cross_entropy_loss)
       self.train_losses.append(train_loss)
 
       # We train for num_epochs epochs.
@@ -127,17 +138,15 @@ class MyModel(tf.keras.Model):
           test_loss, test_accuracy = self.test( test_dataset, cross_entropy_loss)
           self.test_losses.append(test_loss)
           self.test_accuracies.append(test_accuracy)
-    #  return train_losses, test_losses, test_accuracies
-
 
 
     ###################################################
     ## 4 Visualize                                   ##
     ###################################################
-    def visualize_learning(self): 
+    def visualize_learning(self, type_classifier): 
       """
       Visualize accuracy and loss for training and test data.
-        """
+      """
       plt.figure()
       line1, = plt.plot(self.train_losses)
       line2, = plt.plot(self.test_losses)
@@ -145,5 +154,5 @@ class MyModel(tf.keras.Model):
       plt.xlabel("Training steps")
       plt.ylabel("Loss/Accuracy")
       plt.legend((line1,line2, line3),("training losses", "test losses", "test accuracy"))
-      
-      return plt.show()
+      plt.title(f'{type_classifier}')
+      return plt.figure
