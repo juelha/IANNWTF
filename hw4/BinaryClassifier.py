@@ -102,6 +102,13 @@ class BinaryClassifier:
     train_ds = self.train_ds.apply(self.pipeline)
     test_ds = self.test_ds.apply(self.pipeline)
 
+    ds = train_ds.take(1)  # Only take a single example
+    for seq, label in ds:
+      print("seq")
+      print(seq)
+      print("label")
+      print(label)
+
     tf.keras.backend.clear_session()
 
     # loss function for binary problems
@@ -128,4 +135,8 @@ class BinaryClassifier:
 
 
 
-  
+## testing
+
+baseline = BinaryClassifier(MyModel(dim_hidden=(2,12),perceptrons_out=1))
+# training the model
+baseline.train(num_epochs=10, learning_rate=0.01)

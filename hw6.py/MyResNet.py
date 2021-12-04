@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.regularizers import *
 from tensorflow.keras.optimizers import *
 import tensorflow as tf
@@ -6,33 +6,43 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+from ResidualBlock import *
+
 ###################################################
 ## 2 Model Class                                 ##
 ###################################################
 
-class MyModel(tf.keras.Model):
+class MyResNet(tf.keras.Model):
       
-    def __init__(self, dim_hidden, perceptrons_out, k_r=None, a_r=None):
+    def __init__(self, image_shape, type_blocks=ResidualBlock, k_r=None, a_r=None):
       """
-      dim_hidden: dimensions of hidden layers (hardcoded as dense layers)
+      type_layers: type of layer/block
+      dim_hidden: dimensions of hidden layers 
                   1st arg: n_layers
                   2nd arg: n_perceptrons per layer
       perceptrons_out: n of perceptrons in output layer
       """
-      super(MyModel, self).__init__()
+      super(MyResNet, self).__init__()
 
-      # initalizing hidden layers
-      n_layers, n_perceptrons = dim_hidden
 
-      self.hidden = [Dense(
-        n_perceptrons,
-        activation=tf.sigmoid,
-        kernel_regularizer=k_r,
-        activity_regularizer=a_r
-        ) for _ in range(n_layers)]
-      
-      self.dropout_layer = Dropout(rate=0.2)
-      self.out = Dense(perceptrons_out, activation=tf.sigmoid)
+
+      # have an initial Conv layer before the first res block (increasing the n of channels)
+     # self.init_conv = tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")
+
+     # self.input_layer = tf.keras.layers.Input(image_shape)
+
+      self.input_layer = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same",  input_shape=(32, 32, 3))
+  
+      self.block1 = ResidualBlock(mode = 'normal', input_shape = image_shape)
+      self.block2 = ResidualBlock(mode = 'strided', input_shape = image_shape) 
+
+      self.block3 = ResidualBlock(mode = 'strided', input_shape = image_shape) 
+
+
+      # EachN image corresponds to one of 10 categories.
+      self.flatten = Flatten()
+      self.out = Dense(10, activation=tf.nn.softmax)
 
       # for visualization of training
       self.test_accuracies = []
@@ -47,10 +57,26 @@ class MyModel(tf.keras.Model):
       input: x, the dataset
       returns: final output
       """
-      for layer in self.hidden:
-            x = layer(x)
-      x = self.dropout_layer(x)
+
+
+      print("IN")
+
+      print(x)
+      x = self.input_layer(x)
+
+      x = self.block1(x)
+      x = self.block2(x)
+
+      x = self.block3(x)
+
+
+      x = self.flatten(x)
+
       x = self.out(x)
+
+
+      print("OUT")
+      print(x) 
       return x       
 
 
@@ -86,12 +112,12 @@ class MyModel(tf.keras.Model):
       for (input, target) in test_data:
         prediction = self(input)
 
-
         print("target") #shape=(64, 1)
         print(target)
 
         print("predi") #shape=(64, 16, 16, 1), dtype=float32)
         print(prediction)
+
 
         sample_test_loss = loss_function(target, prediction)
         sample_test_accuracy =  target == np.round(prediction, 0)
@@ -109,14 +135,17 @@ class MyModel(tf.keras.Model):
     ## Training Loop                                 ##
     ###################################################
 
-    def training_loop(self, train_dataset, test_dataset, num_epochs, learning_rate, loss_function, optimizer_func):
+    def training_loop(self, train_dataset, test_dataset, num_epochs, learning_rate, optimizer_func=Adam):
       """
       training of the model 
       initializes the vectors self.test_losses, self.test_accuracies, and self.test_accuracies 
       inputs: train_dataset, test_dataset, num_epochs, learning_rate, loss_function, optimizer_func
       """
       # Initialize the loss: categorical cross entropy. Check out 'tf.keras.losses'.
-      cross_entropy_loss = loss_function
+     # cross_entropy_loss = loss_function
+      # Initialize the loss: categorical cross entropy. Check out 'tf.keras.losses'.
+      cross_entropy_loss = tf.keras.losses.CategoricalCrossentropy()
+
 
       optimizer = optimizer_func(learning_rate)
 
@@ -164,3 +193,4 @@ class MyModel(tf.keras.Model):
       plt.legend((line1,line2, line3),("training losses", "test losses", "test accuracy"))
       plt.title(f'{type_classifier}')
       return plt.figure
+
