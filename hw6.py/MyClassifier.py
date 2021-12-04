@@ -6,6 +6,7 @@ from keras.datasets import cifar10
 from tensorflow.keras.optimizers import *
 
 from MyResNet import *
+from MyDenseNet import *
 
 
 class MyClassifier:
@@ -99,11 +100,13 @@ class MyClassifier:
     #resblock_try = ResidualBlock(mode = 'strided', input_shape = (32,32,3))
     #out = resblock_try(dummy)
 
-    self.model = MyResNet(self.image_shape)
+  #  self.model = MyResNet(self.image_shape)
+    self.model = MyDenseNet()
 
+    
     # trainig model
     self.model.training_loop(train_ds, test_ds, num_epochs, learning_rate)
-
+    print(self.model.summary())
 
   ###################################################
   ## Evaluate perfomance                           ##
@@ -125,6 +128,6 @@ class MyClassifier:
 
 # testing
 myclassifier = MyClassifier()
-myclassifier.train(num_epochs=10,learning_rate=1)
+myclassifier.train(num_epochs=1,learning_rate=1)
 
 print("okay")

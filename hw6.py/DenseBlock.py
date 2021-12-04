@@ -1,205 +1,138 @@
 
+import tensorflow as tf
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.layers import Conv2D, MaxPool2D, AveragePooling2D, Dense, Flatten, BatchNormalization, Activation, Add, GlobalAveragePooling2D, Concatenate
+
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.regularizers import *
+from tensorflow.keras.optimizers import *
+import tensorflow as tf
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 
 
-class TransitionLayer():
+class TransitionLayer(tf.keras.Model):
+  """
+  TransitionLayer class
+  Defines a transition layer, inheriting from tf.keras.Model.
+  """
 
+  def __init__(self, n_filters):
+    """ 
+    Initializes a transition layer.
+    In the transition layer we reduce the number of channels to half of the existing channels.
+    Parameters
+    ----------
+    n_filters : int
+        number of filters for each convolutional layer
     """
-    Instantiates the layers and computations involved in a TransitionLayer from DenseNet for the functional API.
+
+    super(TransitionLayer, self).__init__()
+
+    self.conv1 = Conv2D(filters=n_filters, kernel_size=(1,1), padding="same")
+    self.bn1 = BatchNormalization()
+    self.act1 = Activation("relu")
+    self.pool1 = AveragePooling2D()
+
     
-    A transition layer is used to reduce the size of the feature maps and halve the number of feature maps.
-    
-    Args:
-    x (KerasTensor) : Input to the transition layer
+  @tf.function
+  def call(self, inputs, training=None):
+    """ 
+    Computes a forward step with the given data
+    Parameters
+    ----------
+    inputs : tf.Tensor
+        the input for the model
+    training : bool
+        true if call has been made from train_step, which tells the batch normalizing layer how to normalize
+   
+    Returns
+    -------
+    x : tf.Tensor
+        the output of the block
     """
 
-    def __init__(self, input_shape):
-        self.batch_normal = tf.keras.layers.BatchNormalization(epsilon=1.001e-05)
-        self.activation = tf.keras.layers.Activation(tf.nn.relu)
-    
-        self.conv = tf.keras.layers.Conv2D(filters = reduce_filters_to, kernel_size=(1,1), padding="valid", use_bias=False)
-
-        # bottleneck, reducing the number of feature maps
-        #(floor divide current number of filters by two for the bottleneck)
-        self.bottleneck = input_shape//2
-        # reduce the height and width of the feature map (not too useful for low-res input)
-        
-        self.pool = tf.keras.layers.AvgPool2D(pool_size=(2,2), strides = (2,2), padding = 'valid')
-    
-    def call(self, x):
-        x = self.batch_normal(x)
-        x = self.activation(x)
-        x = self.conv(x)
-        x = self.bottleneck(x)
-
-        return x
+    x = self.conv1(inputs)
+    x = self.bn1(x, training=training)
+    x = self.act1(x)
+    x = self.pool1(x)
+    return x
 
 
 
 
+class DenseBlock(tf.keras.Model):
+  """
+  DenseBlock class
+  Defines a dense block, inheriting from tf.keras.Model.
+  """
 
-class DenseBlock(): 
+  def __init__(self, n_filters, new_channels):
+    """ 
+    Initializes a dense block.
+    It is made up of convolutions where the original input is concatenated with the output of the convolutions.
+    Parameters
+    ----------
+    n_filters : int
+        number of filters for each convolutional layer
+    new_channels : int
+        number of new channels
+    """
 
-  def __init__(self): 
     super(DenseBlock, self).__init__()
-    self.batch_normal =  tf.keras.layers.BatchNormalization(epsilon=1.001e-05)
-    self.activation = tf.keras.layers.Activation(tf.nn.relu)
+
+    self.bn1 = BatchNormalization()
+    self.act1 = Activation("relu")
+    self.conv1 = Conv2D(filters=n_filters, kernel_size=(1,1), padding="valid")
+
+    self.bn2 = BatchNormalization()
+    self.act2 = Activation("relu")
+    self.conv2 = Conv2D(filters=new_channels, kernel_size=(3,3), padding="same")
+
+    self.concat = Concatenate(axis=-1)
+
     
-    # 1x1 convolution with 128 filters (padding "valid" because with 1x1 we don't need padding)
-    self.conv1 = tf.keras.layers.Conv2D(n_filters, kernel_size=(1,1), padding="valid", use_bias=False)
-    # 3x3 convolution with 32 filters (to be concatenated with the input)
-    self.conv2 = tf.keras.layers.Conv2D(new_channels, kernel_size=(3,3), padding="same", use_bias=False)
+  @tf.function
+  def call(self, inputs, training=None):
+    """ 
+    Computes a forward step with the given data
+    Parameters
+    ----------
+    inputs : tf.Tensor
+        the input for the model
+    training : bool
+        true if call has been made from train_step, which tells the batch normalizing layer how to normalize
+   
+    Returns
+    -------
+    x : tf.Tensor
+        the output of the model
+    """
 
-  
-  def block(self, x):
-    x_out = self.batch_normal(x) 
-    x_out = self.activation(x_out)
-    x_out = self.conv1(x_out)
-    x_out = self.batch_normal(x_out)
-    x_out = self.activation(x_out)
-    x_out = self.conv2(x_out)
-    return x_out
-  
-  def call(self, x):
-    # Concatenate layer (just a tf.keras.layers.Layer that calls tf.concat)
-    x_out = tf.keras.layers.Concatenate(axis=3)([x, block(x)]) # axis 3 for channel dimension
-    return x_out
+    x = self.bn1(inputs, training=training)
+    x = self.act1(x)
+    x = self.conv1(x)
 
+    x = self.bn2(x, training=training)
+    x = self.act2(x)
+    x = self.conv2(x)
 
-# Custom Layer
-class DenseNet(tf.keras.layers.Layer):
+    x = self.concat([x, inputs])
 
-    def __init__(self, units=8):
-        super(DenseNet, self).__init__()
-        self.units = units
-        self.activation = tf.nn.softmax
-
-    def build(self, input_shape): 
-        self.w = self.add_weight(shape=(input_shape[-1], self.units),
-                               initializer='random_normal',
-                               trainable=True)
-        self.b = self.add_weight(shape=(self.units,),
-                               initializer='random_normal',
-                               trainable=True)
-
-    def call(self, inputs): 
-        x = tf.matmul(inputs, self.w) + self.b
-        x = self.activation(x)
-        return x
-
-
-
+    return x
 
 ## testing 
-
-
-def get_DenseNet121():
-    """
-    Creates a tf.keras.Model with the functional API that matches the official DenseNet121 in detail.
-    
-    The architecture is as follows:
-    
-    (stem of the network)
-    zero padding (3,3)
-    7x7 conv with strides 2 (valid)
-
-    batchnormalization
-    
-    relu
-    
-    zero padding (1,1)
-    3x3 max pool, strides 2 (valid)
-    
-    (after reducing the input size, we now use our dense and transition blocks)
-    
-     6 Dense Blocks 
-     
-    Transition layer
-
-    12 Dense Blocks
-    
-    Transition layer
-
-    24 Dense Blocks
-    
-    Transition layer
-
-    16 Dense Blocks
-
-    batchnormalization
-    
-    relu
-
-    global pooling 
-    
-    (having extracted the feature vector from the image with the DenseBlocks, we apply the classification head)
-    
-    1000 units dense with softmax (because imagenet has 1000 classes)
-    
-    """
-    # (pseudo input, not used for building subclassed models, only in functional api!)
-    x_in = tf.keras.layers.Input(shape= (224,224,3)) # shape of imagenet images
-    
-    # the stem of the network (used to subsample the image, reducing the size of feature maps)
-    # note this is not needed for low res images like in cifar10.
-    
-    # use extra zero padding because otherwise same padding would be asymmetric (we want it to be symmetric)
-    x = tf.keras.layers.ZeroPadding2D(padding=(3, 3), data_format=None)(x_in)
-    
-    x = tf.keras.layers.Conv2D(filters = 64, 
-                               kernel_size=(7,7), 
-                               strides=(2,2),
-                               padding="valid",
-                              use_bias=False)(x)
-    
-    x = tf.keras.layers.BatchNormalization(epsilon=1.001e-05)(x)
-    x = tf.keras.layers.Activation(tf.nn.relu)(x)
-    
-    # use extra zero padding because otherwise same padding would be asymmetric (we want it to be symmetric)
-    x = tf.keras.layers.ZeroPadding2D(padding=(1, 1), data_format=None)(x)
-    
-    x = tf.keras.layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid")(x)
-    
-    
-    # 6 DenseBlocks forming the first Block
-    
-    for _ in range(6):
-        x = dense_block(x, n_filters=128, new_channels=32)
-    
-    # Transition layer to reduce resolution and halve number of feature maps
-    x = transition_layer(x)
-    
-    # 12 DenseBlocks forming the second Block
-    
-    for _ in range(12):
-        x = dense_block(x, n_filters=128, new_channels=32)
-    
-    # Transition layer to reduce resolution and halve number of feature maps
-    x = transition_layer(x)
-    
-    # 24 DenseBlocks forming the third Block
-    
-    for _ in range(24):
-        x = dense_block(x, n_filters=128, new_channels=32)
-        
-    x = transition_layer(x)
-    
-    for _ in range(16):
-        x = dense_block(x, n_filters=128, new_channels=32)
-        
-    # this was the last block, so we now simply apply bn and relu
-    
-    x = tf.keras.layers.BatchNormalization(epsilon=1.001e-05)(x)
-    x = tf.keras.layers.Activation(tf.nn.relu)(x)
-    
-    # By now, the feature maps are only 7x7 in height and width. 
-    # We use global average pooling to transform them into feature vectors that work with Dense Layers.
-    
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    
-    # Classification head (imagenet has 1000 classes, which means 1000 output units with softmax)
-    
-    x_out = tf.keras.layers.Dense(1000, activation="softmax")(x)
-    
-    return tf.keras.Model(x_in, x_out)

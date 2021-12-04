@@ -112,12 +112,6 @@ class MyResNet(tf.keras.Model):
       for (input, target) in test_data:
         prediction = self(input)
 
-        print("target") #shape=(64, 1)
-        print(target)
-
-        print("predi") #shape=(64, 16, 16, 1), dtype=float32)
-        print(prediction)
-
 
         sample_test_loss = loss_function(target, prediction)
         sample_test_accuracy =  target == np.round(prediction, 0)
