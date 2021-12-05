@@ -1,7 +1,6 @@
 import tensorflow as tf
 
 
-# Custom Layer
 class ResidualBlock(tf.keras.layers.Layer):
     
     def __init__(self, mode = "normal", input_shape = (32,32,3), n_filters = 32, out_filters = 64):
