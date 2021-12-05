@@ -1,83 +1,93 @@
 import tensorflow as tf
-
 import matplotlib.pyplot as plt
 import numpy as np
-import math
-import tensorflow as tf
-import tensorflow_datasets as tfds
-import numpy as np
-import matplotlib.pyplot as plt
-from tensorflow.keras.layers import Conv2D, MaxPool2D, AveragePooling2D, Dense, Flatten, BatchNormalization, Activation, Add, GlobalAveragePooling2D, Concatenate
 
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Flatten, BatchNormalization, GlobalAveragePooling2D
+
 from tensorflow.keras.regularizers import *
 from tensorflow.keras.optimizers import *
-import tensorflow as tf
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 from DenseBlock import *
 
 class MyDenseNet(tf.keras.Model):
     """
-    DenseNet class
-    Defines a whole DenseNet model, inheriting from tf.keras.Model and including multiple dense blocks.
-        """
+    Model: "my_dense_net"
+    _________________________________________________________________   
+    Layer (type)                Output Shape              Param #   
+    =================================================================
+    conv2d (Conv2D)             multiple                  896       
+                                                                    
+    dense_block (DenseBlock)    multiple                  21376     
+                                                                    
+    transition_layer (Transitio  multiple                 10560     
+    nLayer)                                                         
+                                                                    
+    dense_block_1 (DenseBlock)  multiple                  25600     
+                                                                    
+    batch_normalization_5 (Batc  multiple                 768       
+    hNormalization)                                                 
+                                                                    
+    global_average_pooling2d (G  multiple                 0         
+    lobalAveragePooling2D)                                          
+                                                                    
+    flatten (Flatten)           multiple                  0         
+                                                                    
+    dense (Dense)               multiple                  1930      
+                                                                    
+    =================================================================
+    Total params: 94,410
+    Trainable params: 93,386
+    Non-trainable params: 1,024
+    _________________________________________________________________
+    """
 
-    def __init__(self):
+    def __init__(self, n_denseblocks = 2, n_filters = 128, n_channels = 32, growth_rate = 32 ):
         """ 
-        Initializes the ResNet.
-        It is made up of one convolutional layer, followed by multiple instances of dense blocks and lastly an output layer.    
+        structure taken from pdf instructions 
         """
-        n_denseblocks = 2
-        n_filters = 128
-        n_channels = 32
-        growth_rate = 32
         super(MyDenseNet, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same",  input_shape=(32, 32, 3))
+
+        # init conv layer 
+        self.input_layer = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same",  input_shape=(32, 32, 3))
 
         self.denseblocks = []
-        for i in range(n_denseblocks):
-            self.denseblocks.append(DenseBlock(n_filters=n_filters, new_channels=n_channels))
-            self.denseblocks.append(TransitionLayer(n_filters=growth_rate*2))
-            self.denseblocks.append(DenseBlock(n_filters=n_filters, new_channels=n_channels))
 
+        #alternately append a Dense Block and A Transition Layer
+        for _ in range(n_denseblocks-1):
+            self.denseblocks.append(DenseBlock(n_filters, n_channels))
+            self.denseblocks.append(TransitionLayer(n_filters=growth_rate*2))
+
+        #You will not want to include a Transition Layer after the last Dense Block
+        self.denseblocks.append(DenseBlock(n_filters, n_channels))
+
+        # readout layers
         self.bn1 = BatchNormalization()
         self.globalpool = GlobalAveragePooling2D()
         self.flatten = Flatten()
         self.out = tf.keras.layers.Dense(10, activation="softmax")
         
-
         # for visualization of training
         self.test_accuracies = []
         self.test_losses = []
         self.train_losses = []
         
     @tf.function
-    def call(self, inputs, training=None):
+    def call(self, inputs):
         """ 
-        Computes a forward step with the given data
-        Parameters
-        ----------
-        inputs : tf.Tensor
-            the input for the model
-        training : bool
-            true if call has been made from train_step, which tells the dropout layer to be active
-    
-        Returns
-        -------
-        x : tf.Tensor
-            the output of the model
+        
         """
+        
+        # init conv layer
+        x = self.input_layer(inputs)
 
-        x = self.conv1(inputs)
+        # denseblocks
         for i in range(len(self.denseblocks)):
-            x = self.denseblocks[i](x, training=training)
-        x = self.bn1(x, training=training)
+            x = self.denseblocks[i](x)
+        
+        # readout layers
+        x = self.bn1(x)
         x = self.globalpool(x)
-        x=self.flatten(x)
+        x = self.flatten(x)
         x = self.out(x)
         return x
 

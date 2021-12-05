@@ -14,33 +14,47 @@ from ResidualBlock import *
 ###################################################
 
 class MyResNet(tf.keras.Model):
+    """
+    Model: "my_res_net"
+    _________________________________________________________________
+    Layer (type)                Output Shape              Param #   
+    =================================================================
+    conv2d_9 (Conv2D)           multiple                  896       
+                                                                    
+    residual_block_2 (ResidualB  multiple                 28800     
+    lock)                                                           
+                                                                    
+    residual_block_3 (ResidualB  multiple                 33952     
+    lock)                                                           
+                                                                    
+    residual_block_4 (ResidualB  multiple                 33952     
+    lock)                                                           
+                                                                    
+    flatten (Flatten)           multiple                  0         
+                                                                    
+    dense (Dense)               multiple                  61450     
+                                                                    
+    =================================================================
+    Total params: 159,050
+    Trainable params: 159,050
+    Non-trainable params: 0
+    _________________________________________________________________
+    """
       
-    def __init__(self, image_shape, type_blocks=ResidualBlock, k_r=None, a_r=None):
+    def __init__(self, image_shape = (32,32,3)):
       """
-      type_layers: type of layer/block
-      dim_hidden: dimensions of hidden layers 
-                  1st arg: n_layers
-                  2nd arg: n_perceptrons per layer
-      perceptrons_out: n of perceptrons in output layer
+
       """
       super(MyResNet, self).__init__()
 
-
-
-      # have an initial Conv layer before the first res block (increasing the n of channels)
-     # self.init_conv = tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu")
-
-     # self.input_layer = tf.keras.layers.Input(image_shape)
-
-      self.input_layer = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same",  input_shape=(32, 32, 3))
+      # init conv layer
+      self.input_layer = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same",  input_shape=image_shape)
   
       self.block1 = ResidualBlock(mode = 'normal', input_shape = image_shape)
       self.block2 = ResidualBlock(mode = 'strided', input_shape = image_shape) 
-
       self.block3 = ResidualBlock(mode = 'strided', input_shape = image_shape) 
 
-
-      # EachN image corresponds to one of 10 categories.
+      # Each image corresponds to one of 10 categories
       self.flatten = Flatten()
       self.out = Dense(10, activation=tf.nn.softmax)
 
@@ -52,31 +66,16 @@ class MyResNet(tf.keras.Model):
     @tf.function
     def call(self, x):
       """
-      forward propagating the inputs through the network
-
-      input: x, the dataset
-      returns: final output
       """
-
-
-      print("IN")
-
-      print(x)
       x = self.input_layer(x)
 
       x = self.block1(x)
       x = self.block2(x)
-
       x = self.block3(x)
 
-
       x = self.flatten(x)
-
       x = self.out(x)
 
-
-      print("OUT")
-      print(x) 
       return x       
 
 

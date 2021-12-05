@@ -1,54 +1,63 @@
-import tensorflow as tf
-import tensorflow_datasets as tfds
 import matplotlib.pyplot as plt
-import numpy as np
-from tensorflow_datasets.core.utils.type_utils import T
+from MyClassifier import *
+
+###################################################
+## 3 Training & Analysis                         ##
+###################################################
+def main():
+
+  ## MyResNet ##
+  # initializing the classifier
+  classifier_res= MyClassifier(model = MyResNet())
+  # training
+  classifier_res.train(num_epochs=1,learning_rate=1)
 
 
-
-# data ------------------------------------------------------------------------------------------------
-
-# loading 100 000 training examples and 1 000 testing examples as recommended
-train_ds, test_ds = tfds.load('Cifar10', split=['train[0:50000]', 'test[0:1000]'], as_supervised=True)
-
-
-
-def normalize(seq):
-
-  return seq/255
+  ## MyDenseNet ##
+  # initializing the classifier
+  classifier_dense = MyClassifier(model = MyDenseNet())
+  #training
+  classifier_dense.train(num_epochs=1,learning_rate=1)
 
 
-def pipeline(tensor):
-  tensor = tensor.map(lambda seq, label: (normalize(seq), tf.one_hot(label, 1)))
-  #cache this progress in memory
-  tensor = tensor.cache()
-  #shuffle, batch, prefetch
-  tensor = tensor.shuffle(1000)
-  tensor = tensor.batch(64)
-  tensor = tensor.prefetch(20)
-  #return preprocessed dataset
-  return tensor
+  ## RESULTS ##
+  print("\nNETWORKS")
+  print(classifier_res.model.summary())
+  print(classifier_dense.model.summary())
 
-ds = train_ds.take(1)  # Only take a single example
-for seq, label in ds:
+  print("\nRESULTS")
 
-  print(seq)
-  print(label)
-  print(normalize(seq))
+  print("\nIMPROVEMENT OVER TESTING DATA")
+  print("RESNET")
+  print(f'accuracy: {max(classifier_res.model.test_accuracies)*100}%')
+  print(f'loss:     {classifier_res.model.test_losses[-1]*100}%')
+  print("DENSENET")
+  print(f'accuracy: {max(classifier_dense.model.test_accuracies)*100}%')
+  print(f'loss:     {classifier_dense.model.test_losses[-1]*100}%')
 
+  # visualize 
+  fig1 = classifier_res.model.visualize_learning("classifier_res")
+  fig2 = classifier_dense.model.visualize_learning("classifier_dense")
 
-
-# pipeline and simplefying target vector to a boolean vector
-train_ds = train_ds.apply(pipeline)
-test_ds = test_ds.apply(pipeline)
+  plt.show()
 
 
-
-
-
-
+  print("okay")
 
 
 
 
-print("okay")
+if __name__ == "__main__":
+
+  main()
+
+  # testing
+  # initializing the classifier
+  #classifier_dense = MyClassifier(model = MyDenseNet())
+  #training
+ # classifier_dense.train(num_epochs=1,learning_rate=1)
+
+
+
+
+
