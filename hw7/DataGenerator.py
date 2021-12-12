@@ -19,8 +19,7 @@ class DataGenerator:
         self.num_samples = 80000
         self.dataset = tf.data.Dataset.from_generator(self.wrapper_generator, output_signature= 
                                                                     (tf.TensorSpec(shape=(self.seq_len,1), dtype=tf.float32),
-                                                                    tf.TensorSpec(shape=(1), dtype=tf.float32)))
-
+                                                                   tf.TensorSpec(shape=(1), dtype=tf.float32)))
 
     def integration_task(self, seq_len, num_samples): 
         for sample in range(num_samples):
@@ -35,24 +34,3 @@ class DataGenerator:
 
     def wrapper_generator(self): 
         return self.integration_task(self.seq_len,self.num_samples)
-
-    #wrapper_generator()
-
-    
-    ###################################################
-    ## 4 Visualize                                   ##
-    ###################################################
-    def visualize_learning(dataset): 
-        """
-        Visualize accuracy and loss for training and test data.
-        """
-        plt.figure()
-        line1, = plt.plot(dataset)
-        #line2, = plt.plot(self.test_losses)
-        #line3, = plt.plot(self.test_accuracies)
-        plt.xlabel("Training steps")
-        plt.ylabel("Loss/Accuracy")
-        plt.legend((line1),("training losses"))
-    #  plt.title(f'{type_classifier}')
-        return plt.figure
-

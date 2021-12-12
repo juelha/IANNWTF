@@ -134,3 +134,6 @@ class BinaryClassifier:
 baseline = BinaryClassifier(LSTM_Wrapper())
 # training the model
 baseline.train(num_epochs=10, learning_rate=0.01)
+
+fig = baseline.model.visualize_learning()
+plt.show()

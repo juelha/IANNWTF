@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class LSTM_Cell(tf.keras.Model):
-      
+         
     def __init__(self, units):
         """
         """
@@ -40,9 +40,9 @@ class LSTM_Cell(tf.keras.Model):
         hidden_state, cell_state = states 
 
         # concatenate previous hidden state and input
-        concat_inputs = tf.keras.layers.concatenate([hidden_state, x])
+      #  concat_inputs = tf.keras.layers.concatenate([hidden_state, x])
 
-      #  concat_inputs = tf.concat((x, hidden_state), axis=1) #. Axis 1 = seq_len
+        concat_inputs = tf.concat((x, hidden_state), axis=1) #. Axis 1 = seq_len
 
         # applying the forget filter to the old cell state Ct−1 via point wise multiplication 
         ft = self.forget_gate(concat_inputs)
@@ -60,4 +60,4 @@ class LSTM_Cell(tf.keras.Model):
         output = self.output_gate(concat_inputs)
         new_hidden = output *tf.math.tanh(new_ct)
 
-        return new_ct, new_hidden
+        return  new_hidden, new_ct

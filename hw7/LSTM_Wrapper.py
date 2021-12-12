@@ -32,8 +32,11 @@ class LSTM_Wrapper(tf.keras.Model):
         x = self.input_layer(x)
         states = self.lstm_layer.zero_states(x.shape[0])
         x = self.lstm_layer(x, states)
-        print("X",x)
+        print("X",x) # ("lstm__layer/StatefulPartitionedCall:0", 
+        #shape=(32, 3, 16), dtype=float32)
         x = self.output_layer(x)
+        print("HERE",x)
+        # Tensor("dense_5/Sigmoid:0", shape=(32, 3, 1), dtype=float32)
         return x
 
 
@@ -70,16 +73,37 @@ class LSTM_Wrapper(tf.keras.Model):
         for (input, target) in test_data:
           prediction = self(input)
 
+        
+          #prediction = self(input)[-1]
+        # print("prediction", tf.expand_dims(prediction, 1))
+         # print("target", target)
+          #prediction = tf.expand_dims(prediction, 1)
+
 
           print("target") #shape=(64, 1) shape=(32, 1), dtype=float32)
           print(target)
 
           print("predi") 
-                        #[0.6339042 ]]], shape=(3, 32, 1), dtype=float32)
+                        #[0.6339042 ]]], shape=32, 3, 1), dtype=float32)
           print(prediction)
 
+         # sample_test_loss = loss_function(target, prediction)
+         # sample_test_accuracy =  target == np.round(prediction, 0)
+          #print(np.argmax(target, axis=0) )
+
+          #print(np.argmax(prediction, axis=2))
+
+          #print(prediction[0])
+          #print(prediction[1])
+          
+          
+          
+          #print(prediction[2])
+         
           sample_test_loss = loss_function(target, prediction)
-          sample_test_accuracy =  target == np.round(prediction, 0)
+         # sample_test_accuracy = np.argmax(target, axis=2) == np.argmax(prediction, axis=2)
+         
+          sample_test_accuracy = np.argmax(target, axis=0) == np.argmax(prediction, axis=2)
           sample_test_accuracy = np.mean(sample_test_accuracy)
           test_loss_aggregator.append(sample_test_loss.numpy())
           test_accuracy_aggregator.append(np.mean(sample_test_accuracy))
@@ -136,7 +160,7 @@ class LSTM_Wrapper(tf.keras.Model):
     ###################################################
     ## 4 Visualize                                   ##
     ###################################################
-    def visualize_learning(self, type_classifier): 
+    def visualize_learning(self, type_classifier="so... hows it going?"): 
         """
         Visualize accuracy and loss for training and test data.
         """
