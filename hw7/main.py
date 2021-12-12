@@ -3,11 +3,16 @@ from BinaryClassifier import *
 
 def main():
 
-  ## baseline ##
-  # initializing the classifier
-  baseline = BinaryClassifier()
+
+    
+  # init model
+  baseline = BinaryClassifier(LSTM_Wrapper())
   # training the model
-  baseline.train(num_epochs=10, learning_rate=0.01)
+  baseline.train(num_epochs=10, learning_rate=0.1,optimizer_func=Adam)
+
+  fig = baseline.trainer.visualize_learning()
+  plt.show()
+
 
 
 

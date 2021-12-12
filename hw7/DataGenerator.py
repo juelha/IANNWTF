@@ -3,7 +3,7 @@ import random
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-# Dataset Setup
+
 
 class DataGenerator:
     '''
@@ -14,14 +14,21 @@ class DataGenerator:
 
     '''
     def __init__(self) :
+        """
+        seq_len = 1 #sequence length, thus the number of time steps we are considering
+
+        """
          
-        self.seq_len = 3
+        self.seq_len = 5 #
         self.num_samples = 80000
         self.dataset = tf.data.Dataset.from_generator(self.wrapper_generator, output_signature= 
-                                                                    (tf.TensorSpec(shape=(self.seq_len,1), dtype=tf.float32),
-                                                                   tf.TensorSpec(shape=(1), dtype=tf.float32)))
+                                                            (tf.TensorSpec(shape=(self.seq_len,1), dtype=tf.float32),
+                                                            tf.TensorSpec(shape=(1), dtype=tf.float32)))
 
     def integration_task(self, seq_len, num_samples): 
+        """
+        target, namely if the sum of the noise signal is greater or smaller than 1
+        """
         for sample in range(num_samples):
             noise_signal=np.array([])
             for signal in range(seq_len):

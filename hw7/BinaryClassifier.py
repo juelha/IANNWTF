@@ -7,6 +7,7 @@ from tensorflow_datasets.core.utils.type_utils import T
 
 from LSTM_Wrapper import *
 from DataGenerator import *
+from Trainer import *
 
 
 class BinaryClassifier:
@@ -17,6 +18,7 @@ class BinaryClassifier:
     model: Instance of MyModell()-Class
     """
     self.model = model
+    self.trainer = Trainer(model)
         
           
   ###################################################
@@ -63,14 +65,10 @@ class BinaryClassifier:
     input: tensorflow dataset
     returns: preprocessed and prepared dataset
     """
-
     # to match states
-    #ds = ds.map(lambda seq, label: (tf.dtypes.cast(seq, tf.float64),label))
-
-
-   # ds = ds.map(lambda features, target: (features, self.make_binary(target)))
-    # note: perfomance is better without converting to one_hot
-    # tensor = tensor.map(lambda inputs, target: (inputs, tf.one_hot(target,1)))
+    ds = ds.map(lambda img, target: (img, tf.cast(target, tf.int32)))
+    # one-hot targets
+    ds = ds.map(lambda img, target: (img, tf.one_hot(target, depth=2)))
     #cache this progress in memory
     ds = ds.cache()
     #shuffle, batch, prefetch
@@ -96,6 +94,7 @@ class BinaryClassifier:
     train_ds = self.train_ds.apply(self.pipeline)
     test_ds = self.test_ds.apply(self.pipeline)
 
+    # look at dataset
     ds = train_ds.take(1)  # Only take a single example
     for seq, label in ds:
       print("seq")
@@ -109,7 +108,7 @@ class BinaryClassifier:
     loss_func = tf.keras.losses.BinaryCrossentropy()
 
     # trainig model
-    self.model.training_loop(train_ds, test_ds, num_epochs, learning_rate, loss_func, optimizer_func)
+    self.trainer.training_loop(train_ds, test_ds, num_epochs, learning_rate, loss_func, optimizer_func)
 
 
   ###################################################
@@ -128,12 +127,3 @@ class BinaryClassifier:
     
 
 
-
-## testing
-
-baseline = BinaryClassifier(LSTM_Wrapper())
-# training the model
-baseline.train(num_epochs=10, learning_rate=0.01)
-
-fig = baseline.model.visualize_learning()
-plt.show()

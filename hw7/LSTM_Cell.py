@@ -15,7 +15,6 @@ class LSTM_Cell(tf.keras.Model):
         super(LSTM_Cell, self).__init__()
         self.units = units
 
-
         # gates
         self.input_gate = tf.keras.layers.Dense(units, activation=tf.sigmoid)
         self.cell_state_candidates = tf.keras.layers.Dense(units, activation=tf.tanh)
@@ -24,24 +23,18 @@ class LSTM_Cell(tf.keras.Model):
 
 
     @tf.function
-    # states : (hidden_state, cell_state)   
     def call(self, x, states):
         """
-        which is called by providing the input for a
-        single times step and a tuple containing (hidden state, cell state)
-        
-        
         forward propagating the inputs through the network
 
         input: x, the dataset
+               states, = (hidden_state, cell_state)   
         returns: final output
         """
 
         hidden_state, cell_state = states 
 
-        # concatenate previous hidden state and input
-      #  concat_inputs = tf.keras.layers.concatenate([hidden_state, x])
-
+        # concatenate prev hidden state and input
         concat_inputs = tf.concat((x, hidden_state), axis=1) #. Axis 1 = seq_len
 
         # applying the forget filter to the old cell state Ct−1 via point wise multiplication 
